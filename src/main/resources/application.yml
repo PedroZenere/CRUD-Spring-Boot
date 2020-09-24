@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/crud-objetos
+    password: 123
+    driverClassName: org.postgresql.Driver
