@@ -1,8 +1,11 @@
 package com.crud.crud.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
@@ -17,22 +20,57 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.crud.crud.DAO.ObjetoDAO;
 import com.crud.crud.model.Objeto;
+import com.politec.minhasfinancas.exception.RegraNegocioException;
+import com.politec.minhasfinancas.model.entity.Lancamento;
 
 @Controller
 @RestController
 @RequestMapping("/objetos")
 public class ObjetoController {
 	
+	
 	@Autowired
 	ObjetoDAO objetoDAO;
 	
 	/* Salvar um objeto */
 	@PostMapping("/objetos")
-	public Objeto createObjeto(@Validated @RequestBody Objeto emp) {
-		return objetoDAO.save(emp);
+	public ResponseEntity createObjeto(@Validated @RequestBody Objeto obj) throws Exception {
+		
+		/*Validacao */
+		if(obj.getDescricao() == null || obj.getDescricao().trim().equals("")) {
+			new ResponseEntity("A descrição do objeto é obrigatório", HttpStatus.BAD_REQUEST);
+		}
+		
+		if(obj.getEstado() == null) {
+			new ResponseEntity("É necessário informar um estado de conservação válido", HttpStatus.BAD_REQUEST);
+		}
+		
+		// Verifica se possuí o patrimônio antigo cadastrado na base
+		//Verifica se não é nulo
+		if(obj.getPatrimonioAntigo() != null ) {
+			Optional<Objeto> patAnt = objetoDAO.findByPatrimonioAntigo(obj.getPatrimonioAntigo());
+		
+			if( patAnt.isPresent()) {
+				new ResponseEntity("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
+			}
+		}
+		
+		// Verifica se possuí o patrimônio novo cadastrado na base
+		//Verifica se não é nulo
+		if(obj.getPatrimonioNovo() != null) {
+			Optional<Objeto> patNov = objetoDAO.findByPatrimonioNovo(obj.getPatrimonioAntigo());
+		
+			if( patNov.isPresent() ) {
+				new ResponseEntity("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
+			}
+		}
+		
+		Objeto entidade = objetoDAO.save(obj);
+		return new ResponseEntity(entidade, HttpStatus.CREATED);
 	}
 	
 	/* Listar todos os objetos */
+	//Falta criar sala para poder realizar as consultas por sala
 	@GetMapping("/objetos")
 	public List<Objeto> getAllObjeto(){
 		return objetoDAO.findAll();
@@ -61,6 +99,36 @@ public class ObjetoController {
 			return ResponseEntity.notFound().build();
 		}
 		
+		/*Validacao */
+		if(obj.getDescricao() == null || obj.getDescricao().trim().equals("")) {
+			new ResponseEntity("A descrição do objeto é obrigatório", HttpStatus.BAD_REQUEST);
+		}
+		
+		if(obj.getEstado() == null) {
+			new ResponseEntity("É necessário informar um estado de conservação válido", HttpStatus.BAD_REQUEST);
+		}
+		
+		// Verifica se possuí o patrimônio antigo cadastrado na base
+		//Verifica se não é nulo
+		if(obj.getPatrimonioAntigo() != null ) {
+			Optional<Objeto> patAnt = objetoDAO.findByPatrimonioAntigo(obj.getPatrimonioAntigo());
+		
+			if( patAnt.isPresent()) {
+				new ResponseEntity("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
+			}
+		}
+		
+		// Verifica se possuí o patrimônio novo cadastrado na base
+		//Verifica se não é nulo
+		if(obj.getPatrimonioNovo() != null) {
+			Optional<Objeto> patNov = objetoDAO.findByPatrimonioNovo(obj.getPatrimonioAntigo());
+		
+			if( patNov.isPresent() ) {
+				new ResponseEntity("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
+			}
+		}
+		
+		//Realiza a setagem dos atributos
 		obj.setDescricao(objDetails.getDescricao());
 		obj.setEstado(objDetails.getEstado());
 		obj.setPendencias(objDetails.getPendencias());
@@ -68,9 +136,14 @@ public class ObjetoController {
 		obj.setPatrimonioNovo(objDetails.getPatrimonioNovo());
 		obj.setPatrimonioPolitec(objDetails.getPatrimonioPolitec());
 		
-		Objeto objUpdate = objetoDAO.save(obj);
+		//Salva as alterações
+		try {
+			Objeto objUpdate = objetoDAO.save(obj);
 		
-		return ResponseEntity.ok().body(objUpdate);
+			return ResponseEntity.ok().body(objUpdate);
+		} catch(Exception e) {
+			return new ResponseEntity("Erro ao atualizar objeto", HttpStatus.BAD_REQUEST);
+		}
 		
 	}
 	
