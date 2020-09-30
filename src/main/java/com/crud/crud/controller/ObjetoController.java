@@ -20,8 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.crud.crud.DAO.ObjetoDAO;
 import com.crud.crud.model.Objeto;
-import com.politec.minhasfinancas.exception.RegraNegocioException;
-import com.politec.minhasfinancas.model.entity.Lancamento;
 
 @Controller
 @RestController
@@ -33,8 +31,8 @@ public class ObjetoController {
 	ObjetoDAO objetoDAO;
 	
 	/* Salvar um objeto */
-	@PostMapping("/objetos")
-	public ResponseEntity createObjeto(@Validated @RequestBody Objeto obj) throws Exception {
+	@PostMapping
+	public ResponseEntity<Objeto> createObjeto(@Validated @RequestBody Objeto obj) throws Exception {
 		
 		/*Validacao */
 		if(obj.getDescricao() == null || obj.getDescricao().trim().equals("")) {
@@ -65,8 +63,12 @@ public class ObjetoController {
 			}
 		}
 		
-		Objeto entidade = objetoDAO.save(obj);
-		return new ResponseEntity(entidade, HttpStatus.CREATED);
+		try {
+			Objeto entidade = objetoDAO.save(obj);
+			return new ResponseEntity(entidade, HttpStatus.CREATED);
+		} catch(Exception e) {
+			return new ResponseEntity("Erro ao cadastrar", HttpStatus.BAD_REQUEST);
+		}
 	}
 	
 	/* Listar todos os objetos */
@@ -78,11 +80,11 @@ public class ObjetoController {
 	
 	/* Listar um objeto pelo ID */
 	@GetMapping("/objetos/{id}")
-	public ResponseEntity<Objeto> getObjetoById(@PathVariable(value = "id") Long objid) {
+	public ResponseEntity<Optional<Objeto>> getObjetoById(@PathVariable(value = "id") Long objid) {
 		
-		Objeto obj = objetoDAO.findOne(objid);
+		Optional<Objeto> obj = objetoDAO.findById(objid);
 		
-		if(obj == null) {
+		if(!obj.isPresent()) {
 			return ResponseEntity.notFound().build();
 		}
 		
@@ -93,52 +95,54 @@ public class ObjetoController {
 	@PutMapping("/objetos/{id}")
 	public ResponseEntity<Objeto> updateObjeto(@PathVariable(value = "id") Long objid, @Validated @RequestBody Objeto objDetails) {
 		
-		Objeto obj = objetoDAO.findOne(objid);
+		Optional<Objeto> obj = objetoDAO.findById(objid);
 		
-		if(obj == null) {
+		if(!obj.isPresent()) {
 			return ResponseEntity.notFound().build();
 		}
 		
 		/*Validacao */
-		if(obj.getDescricao() == null || obj.getDescricao().trim().equals("")) {
-			new ResponseEntity("A descrição do objeto é obrigatório", HttpStatus.BAD_REQUEST);
+		if(objDetails.getDescricao() == null || objDetails.getDescricao().trim().equals("")) {
+			new ResponseEntity<Object>("A descrição do objeto é obrigatório", HttpStatus.BAD_REQUEST);
 		}
 		
-		if(obj.getEstado() == null) {
+		if(objDetails.getEstado() == null) {
 			new ResponseEntity("É necessário informar um estado de conservação válido", HttpStatus.BAD_REQUEST);
 		}
 		
 		// Verifica se possuí o patrimônio antigo cadastrado na base
 		//Verifica se não é nulo
-		if(obj.getPatrimonioAntigo() != null ) {
-			Optional<Objeto> patAnt = objetoDAO.findByPatrimonioAntigo(obj.getPatrimonioAntigo());
+		if(objDetails.getPatrimonioAntigo() != null ) {
+			Optional<Objeto> patAnt = objetoDAO.findByPatrimonioAntigo(objDetails.getPatrimonioAntigo());
 		
 			if( patAnt.isPresent()) {
-				new ResponseEntity("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
+				new ResponseEntity<Object>("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
 			}
 		}
 		
 		// Verifica se possuí o patrimônio novo cadastrado na base
 		//Verifica se não é nulo
-		if(obj.getPatrimonioNovo() != null) {
-			Optional<Objeto> patNov = objetoDAO.findByPatrimonioNovo(obj.getPatrimonioAntigo());
+		if(objDetails.getPatrimonioNovo() != null) {
+			Optional<Objeto> patNov = objetoDAO.findByPatrimonioNovo(objDetails.getPatrimonioNovo());
 		
 			if( patNov.isPresent() ) {
-				new ResponseEntity("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
+				new ResponseEntity<Object>("Já há um objeto cadastrado com o patrimônio informado", HttpStatus.BAD_REQUEST);
 			}
 		}
 		
+		Objeto updateObj = obj.get();
+		
 		//Realiza a setagem dos atributos
-		obj.setDescricao(objDetails.getDescricao());
-		obj.setEstado(objDetails.getEstado());
-		obj.setPendencias(objDetails.getPendencias());
-		obj.setPatrimonioAntigo(objDetails.getPatrimonioAntigo());
-		obj.setPatrimonioNovo(objDetails.getPatrimonioNovo());
-		obj.setPatrimonioPolitec(objDetails.getPatrimonioPolitec());
+		updateObj.setDescricao(objDetails.getDescricao());
+		updateObj.setEstado(objDetails.getEstado());
+		updateObj.setPendencias(objDetails.getPendencias());
+		updateObj.setPatrimonioAntigo(objDetails.getPatrimonioAntigo());
+		updateObj.setPatrimonioNovo(objDetails.getPatrimonioNovo());
+		updateObj.setPatrimonioPolitec(objDetails.getPatrimonioPolitec());
 		
 		//Salva as alterações
 		try {
-			Objeto objUpdate = objetoDAO.save(obj);
+			Objeto objUpdate = objetoDAO.save(updateObj);
 		
 			return ResponseEntity.ok().body(objUpdate);
 		} catch(Exception e) {
@@ -151,13 +155,15 @@ public class ObjetoController {
 	@DeleteMapping("/objetos/{id}")
 	public ResponseEntity<Objeto> deleteObjeto(@PathVariable(value = "id") Long objid) {
 		
-		Objeto obj = objetoDAO.findOne(objid);
+		Optional<Objeto> obj = objetoDAO.findById(objid);
 		
-		if(obj == null) {
+		if(!obj.isPresent()) {
 			return ResponseEntity.notFound().build();
 		}
 		
-		objetoDAO.delete(obj);
+		Objeto deleteObj = obj.get();
+		
+		objetoDAO.delete(deleteObj);
 		
 		return ResponseEntity.ok().build();
 	}

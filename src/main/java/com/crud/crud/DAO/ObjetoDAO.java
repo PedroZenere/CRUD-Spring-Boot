@@ -28,8 +28,8 @@ public class ObjetoDAO {
 	
 	
 	/*Encontrar um objeto */
-	public Objeto findOne(Long id) {
-		return objetoRepository.findOne(id);
+	public Optional<Objeto> findById(Long id) {
+		return objetoRepository.findById(id);
 	}
 	
 	
