@@ -1,0 +1,8 @@
+package com.appsdeveloperblog.app.ws.ui.model.service;
+
+import com.appsdeveloperblog.app.ws.shared.dto.UserDto;
+
+//Diz quais metodos seram implementados pelas classes que implementaram esta interface
+public interface UserService {
+	UserDto createUser(UserDto user);
+}

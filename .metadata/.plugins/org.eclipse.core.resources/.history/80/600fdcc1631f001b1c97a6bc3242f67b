@@ -1,0 +1,5 @@
+package com.appsdeveloperblog.app.ws.ui.model.service.impl;
+
+public class UserServiceImpl {
+
+}

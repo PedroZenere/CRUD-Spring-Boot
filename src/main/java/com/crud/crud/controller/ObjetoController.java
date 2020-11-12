@@ -31,6 +31,11 @@ public class ObjetoController {
 	ObjetoDAO objetoDAO;
 	
 	/* Salvar um objeto */
+	@RequestMapping({"/hello"})
+	public String hello(){
+		return "Hello World";
+	}
+
 	@PostMapping
 	public ResponseEntity<Objeto> createObjeto(@Validated @RequestBody Objeto obj) throws Exception {
 		

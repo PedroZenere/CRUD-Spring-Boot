@@ -1,0 +1,18 @@
+package com.appsdeveloperblog.app.ws.ui.model.service.impl;
+
+import org.springframework.stereotype.Service;
+
+import com.appsdeveloperblog.app.ws.shared.dto.UserDto;
+import com.appsdeveloperblog.app.ws.ui.model.service.UserService;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+	@Override
+	public UserDto createUser(UserDto user) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	
+}
