@@ -22,13 +22,15 @@ import com.appsdeveloperblog.app.ws.ui.model.request.UserLoginRequestModel;
 import com.appsdeveloperblog.app.ws.ui.model.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SignatureException;
 
 public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
-	
+
 	private final AuthenticationManager authenticationManager;
-	
+
 	public AuthenticationFilter(AuthenticationManager authenticationManager) {
 		this.authenticationManager = authenticationManager;
 	}
@@ -36,13 +38,13 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 	@Override
 	public Authentication attemptAuthentication(HttpServletRequest req, HttpServletResponse res)
 			throws AuthenticationException {
-		
-		
+
 		try {
 			UserLoginRequestModel creds = new ObjectMapper().readValue(req.getInputStream(), UserLoginRequestModel.class);
-			
-			return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(creds.getEmail(), creds.getPassword(), new ArrayList<>()));
-		} catch(IOException e) {
+
+			return authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(creds.getEmail(), creds.getPassword(), new ArrayList<>()));
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -50,26 +52,29 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 	@Override
 	protected void successfulAuthentication(HttpServletRequest req, HttpServletResponse res, FilterChain chain,
 			Authentication auth) throws IOException, ServletException {
-		
+
 		String userName = ((User) auth.getPrincipal()).getUsername();
-		//String tokenSecret = new SecurityConstants().getTokenSecret();
-		
-		String token = Jwts.builder()
-				.setSubject(userName)
-				.setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME))
-				.signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret())
-				.compact();
-		
-		UserService userService = (UserService)SpringApplicationContext.getBean("userServiceImpl");
+		String token = "";
+		// String tokenSecret = new SecurityConstants().getTokenSecret();
+
+		try {
+			token = Jwts.builder().setSubject(userName)
+					.setExpiration(new Date(System.currentTimeMillis() + (SecurityConstants.EXPIRATION_TIME) ))
+					.signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret()).compact();
+		} catch (ExpiredJwtException e) {
+			System.out.println("Token expired");
+		} catch (SignatureException e) {
+			System.out.println("Err: " + e);
+		} catch (Exception e) {
+			System.out.println("Some other exception in JWT parsing ");
+		}
+
+		UserService userService = (UserService) SpringApplicationContext.getBean("userServiceImpl");
 		UserDto userDto = userService.getUser(userName);
-		
+
 		res.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants.TOKEN_PREFIX + token);
 		res.addHeader("UserID", userDto.getUserId());
-		
+
 	}
-	
-	
-	
-	
 
 }
